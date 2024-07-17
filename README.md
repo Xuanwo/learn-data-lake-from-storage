@@ -14,6 +14,7 @@ This project is structured into various questions along with different data lake
 - [Apache Iceberg](lakes/apache-iceberg)
 - [Apache Paimon](lakes/apache-paimon)
 - [Delta Lake](lakes/delta-lake)
+- [Apache Hudi](lakes/apache-hudi)
 
 You can navigate to the corresponding directory to explore the project you are interested in. Or you can follow the questions in the [Questions](#questions) section to explore the data lake projects step by step.
 
