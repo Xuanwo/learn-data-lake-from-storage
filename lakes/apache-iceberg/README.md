@@ -89,6 +89,14 @@ Download file
 s3cmd --access_key=admin --secret_key=password --host=127.0.0.1:9000 --host-bucket="127.0.0.1:9000/%(bucket)" --no-ssl get s3://warehouse/nyc/example_table/metadata/00000-37121756-df65-47d6-93bb-b6eb53e33eea.metadata.json
 ```
 
+### Inspect avro files
+
+```shell
+java -jar ./tools/avro-tools-1.11.3.jar tojson ./snap-7304560488408846027-1-631b4d7b-5501-4cb2-b205-7b8117a0fe7b.avro
+```
+
+Add `--pretty` to make it easier to read.
+
 ## Questions
 
 1. [How Apache Iceberg Stores Table Metadata?](../../01-how-data-lake-stores-table-metadata.md#apache-iceberg)

@@ -72,6 +72,8 @@ converted_type (legacy): UTF8
 compression: UNCOMPRESSED (space_saved: 0%)
 ```
 
+### Summary
+
 So hive only store data files in the storage layer, and all the metadata are stored in the hive metastore.
 
 ## Apache Iceberg
@@ -87,18 +89,215 @@ INSERT INTO demo.nyc.example_table VALUES (1, "a");
 Let's see how storage changed:
 
 ```shell
-2024-07-17 08:37          643  s3://warehouse/nyc/example_table/data/00000-0-d58f591f-ad55-4273-92cc-ab822b979101-00001.parquet
-2024-07-17 08:33         1207  s3://warehouse/nyc/example_table/metadata/00000-37121756-df65-47d6-93bb-b6eb53e33eea.metadata.json
-2024-07-17 08:37         2239  s3://warehouse/nyc/example_table/metadata/00001-0516b8a5-a4d7-4d9e-ad21-7886bf787cda.metadata.json
-2024-07-17 08:37         5773  s3://warehouse/nyc/example_table/metadata/3edad76b-0a9a-4a23-bc19-fe313581a137-m0.avro
-2024-07-17 08:37         3755  s3://warehouse/nyc/example_table/metadata/snap-9006172241630323903-1-3edad76b-0a9a-4a23-bc19-fe313581a137.avro
+2024-07-17 13:15          643  s3://warehouse/nyc/example_table/data/00000-0-b8b23675-d878-437c-a8f1-6b5b11cafeed-00001.parquet
+2024-07-17 13:14         1207  s3://warehouse/nyc/example_table/metadata/00000-c8902826-08a4-443f-a4ae-d6d62c153816.metadata.json
+2024-07-17 13:15         2239  s3://warehouse/nyc/example_table/metadata/00001-1ea6472c-98aa-4576-b66a-efbbf87dd354.metadata.json
+2024-07-17 13:15         5773  s3://warehouse/nyc/example_table/metadata/631b4d7b-5501-4cb2-b205-7b8117a0fe7b-m0.avro
+2024-07-17 13:15         3754  s3://warehouse/nyc/example_table/metadata/snap-7304560488408846027-1-631b4d7b-5501-4cb2-b205-7b8117a0fe7b.avro
 ```
 
 Apart from existing `metadata/00000-37121756-df65-47d6-93bb-b6eb53e33eea.metadata.json`, we have the following new files created after an insert:
 
-- `data/00000-0-d58f591f-ad55-4273-92cc-ab822b979101-00001.parquet`
-- `metadata/00001-0516b8a5-a4d7-4d9e-ad21-7886bf787cda.metadata.json`
-- `metadata/3edad76b-0a9a-4a23-bc19-fe313581a137-m0.avro`
-- `metadata/snap-9006172241630323903-1-3edad76b-0a9a-4a23-bc19-fe313581a137.avro`
+- `data/00000-0-b8b23675-d878-437c-a8f1-6b5b11cafeed-00001.parquet`
+- `metadata/00001-1ea6472c-98aa-4576-b66a-efbbf87dd354.metadata.json`
+- `metadata/631b4d7b-5501-4cb2-b205-7b8117a0fe7b-m0.avro`
+- `metadata/snap-7304560488408846027-1-631b4d7b-5501-4cb2-b205-7b8117a0fe7b.avro`
 
-NOT FINISHED.
+## Metadata File
+
+Let's checkout the new `metadata.json` file first:
+
+```diff
+5c5
+<   "last-updated-ms" : 1721222050498,
+---
+>   "last-updated-ms" : 1721222138542,
+53,55c53,79
+<   "current-snapshot-id" : -1,
+<   "refs" : { },
+<   "snapshots" : [ ],
+---
+>   "current-snapshot-id" : 7304560488408846027,
+>   "refs" : {
+>     "main" : {
+>       "snapshot-id" : 7304560488408846027,
+>       "type" : "branch"
+>     }
+>   },
+>   "snapshots" : [ {
+>     "snapshot-id" : 7304560488408846027,
+>     "timestamp-ms" : 1721222138542,
+>     "summary" : {
+>       "operation" : "append",
+>       "spark.app.id" : "local-1721222015546",
+>       "added-data-files" : "1",
+>       "added-records" : "1",
+>       "added-files-size" : "643",
+>       "changed-partition-count" : "1",
+>       "total-records" : "1",
+>       "total-files-size" : "643",
+>       "total-data-files" : "1",
+>       "total-delete-files" : "0",
+>       "total-position-deletes" : "0",
+>       "total-equality-deletes" : "0"
+>     },
+>     "manifest-list" : "s3://warehouse/nyc/example_table/metadata/snap-7304560488408846027-1-631b4d7b-5501-4cb2-b205-7b8117a0fe7b.avro",
+>     "schema-id" : 0
+>   } ],
+57,58c81,88
+<   "snapshot-log" : [ ],
+<   "metadata-log" : [ ]
+---
+>   "snapshot-log" : [ {
+>     "timestamp-ms" : 1721222138542,
+>     "snapshot-id" : 7304560488408846027
+>   } ],
+>   "metadata-log" : [ {
+>     "timestamp-ms" : 1721222050498,
+>     "metadata-file" : "s3://warehouse/nyc/example_table/metadata/00000-c8902826-08a4-443f-a4ae-d6d62c153816.metadata.json"
+>   } ]
+```
+
+Compared to the existing `metadata.json` file, we have the following changes:
+
+- `snapshots` now contains a new snapshot, which records the operation, added data files, added records, etc.
+- `snapshot-log` now contains the timestamp and snapshot id.
+- `metadata-log` now contains the timestamp and last metadata file.
+
+## Manifest List
+
+The `manifest-list` points the snapshot files located at: `metadata/snap-7304560488408846027-1-631b4d7b-5501-4cb2-b205-7b8117a0fe7b.avro`. 
+
+Let's use `avro-tools` to inspect it:
+
+```json
+{
+  "manifest_path" : "s3://warehouse/nyc/example_table/metadata/631b4d7b-5501-4cb2-b205-7b8117a0fe7b-m0.avro",
+  "manifest_length" : 5773,
+  "partition_spec_id" : 0,
+  "added_snapshot_id" : {
+    "long" : 7304560488408846027
+  },
+  "added_data_files_count" : {
+    "int" : 1
+  },
+  "existing_data_files_count" : {
+    "int" : 0
+  },
+  "deleted_data_files_count" : {
+    "int" : 0
+  },
+  "partitions" : {
+    "array" : [ ]
+  },
+  "added_rows_count" : {
+    "long" : 1
+  },
+  "existing_rows_count" : {
+    "long" : 0
+  },
+  "deleted_rows_count" : {
+    "long" : 0
+  }
+}
+```
+
+The manifest list contains the following information:
+
+- Path and size of the manifest file.
+- Summary of the snapshot, including added data files, added records, etc.
+
+## Manifest File
+
+Manifest list will point to one or more manifest files which contains the following information:
+
+```json
+{
+  "status" : 1,
+  "snapshot_id" : {
+    "long" : 7304560488408846027
+  },
+  "data_file" : {
+    "file_path" : "s3://warehouse/nyc/example_table/data/00000-0-b8b23675-d878-437c-a8f1-6b5b11cafeed-00001.parquet",
+    "file_format" : "PARQUET",
+    "partition" : { },
+    "record_count" : 1,
+    "file_size_in_bytes" : 643,
+    "block_size_in_bytes" : 67108864,
+    "column_sizes" : {
+      "array" : [ {
+        "key" : 1,
+        "value" : 46
+      }, {
+        "key" : 2,
+        "value" : 48
+      } ]
+    },
+    "value_counts" : {
+      "array" : [ {
+        "key" : 1,
+        "value" : 1
+      }, {
+        "key" : 2,
+        "value" : 1
+      } ]
+    },
+    "null_value_counts" : {
+      "array" : [ {
+        "key" : 1,
+        "value" : 0
+      }, {
+        "key" : 2,
+        "value" : 0
+      } ]
+    },
+    "nan_value_counts" : {
+      "array" : [ ]
+    },
+    "lower_bounds" : {
+      "array" : [ {
+        "key" : 1,
+        "value" : "\u0001\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+      }, {
+        "key" : 2,
+        "value" : "a"
+      } ]
+    },
+    "upper_bounds" : {
+      "array" : [ {
+        "key" : 1,
+        "value" : "\u0001\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+      }, {
+        "key" : 2,
+        "value" : "a"
+      } ]
+    },
+    "key_metadata" : null,
+    "split_offsets" : {
+      "array" : [ 4 ]
+    },
+    "sort_order_id" : {
+      "int" : 0
+    }
+  }
+}
+```
+
+- `status` marks the status of the data file, could be `EXISTING`, `ADDED`, `DELETED`.
+- `data_file` carries the information of the data file, including file path, file format, partition, record count, file size, etc.
+
+### Data File
+
+And finally, we will have the data file with value:
+
+```shell
++------+--------+
+|   id | name   |
+|------+--------|
+|    1 | a      |
++------+--------+
+```
+
+### Summary
+
+So in iceberg table, one line insert is not just about adding data files, but also about updating the metadata files includes metadata file, manifest lists, manifest files, and data files.
