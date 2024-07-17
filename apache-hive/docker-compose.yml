@@ -1,0 +1,15 @@
+services:
+  hiveserver2:
+    image: apache/hive:4.0.0
+    restart: unless-stopped
+    container_name: hiveserver2
+    environment:
+      SERVICE_NAME: "hiveserver2"
+    ports:
+      - "10000:10000"
+      - "10002:10002"
+    volumes:
+      - warehouse:/opt/hive/data/warehouse
+
+volumes:
+  warehouse:
