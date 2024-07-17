@@ -80,6 +80,14 @@ At current time, the data path is empty:
 0 directories, 0 files
 ```
 
+## Tips
+
+### Inspect files from docker volume
+
+```shell
+sudo cp /var/lib/docker/volumes/apache-hive_warehouse/_data .
+```
+
 ## Questions
 
 1. [How Apache Hive Stores Table Metadata?](../../01-how-data-lake-stores-table-metadata.md#apache-hive)

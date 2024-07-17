@@ -71,10 +71,22 @@ Spark master: local[*], Application Id: local-1721204992221
 spark-sql >
 ```
 
-At current time, the data path is empty:
+At current time, the data path is empty.
+
+## Tips
+
+### Inspect files from minio
+
+List all files
 
 ```shell
-:) s3cmd --access_key=admin --secret_key=password --host=127.0.0.1:9000 --host-bucket="127.0.0.1:9000/%(bucket)" --no-ssl ls -rl s3://warehouse
+s3cmd --access_key=admin --secret_key=password --host=127.0.0.1:9000 --host-bucket="127.0.0.1:9000/%(bucket)" --no-ssl ls -rl s3://warehouse
+```
+
+Download file
+
+```shell
+s3cmd --access_key=admin --secret_key=password --host=127.0.0.1:9000 --host-bucket="127.0.0.1:9000/%(bucket)" --no-ssl get s3://warehouse/nyc/example_table/metadata/00000-37121756-df65-47d6-93bb-b6eb53e33eea.metadata.json
 ```
 
 ## Questions

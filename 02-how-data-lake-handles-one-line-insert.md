@@ -87,7 +87,6 @@ INSERT INTO demo.nyc.example_table VALUES (1, "a");
 Let's see how storage changed:
 
 ```shell
-:) s3cmd --access_key=admin --secret_key=password --host=127.0.0.1:9000 --host-bucket="127.0.0.1:9000/%(bucket)" --no-ssl ls -r s3://warehouse
 2024-07-17 08:37          643  s3://warehouse/nyc/example_table/data/00000-0-d58f591f-ad55-4273-92cc-ab822b979101-00001.parquet
 2024-07-17 08:33         1207  s3://warehouse/nyc/example_table/metadata/00000-37121756-df65-47d6-93bb-b6eb53e33eea.metadata.json
 2024-07-17 08:37         2239  s3://warehouse/nyc/example_table/metadata/00001-0516b8a5-a4d7-4d9e-ad21-7886bf787cda.metadata.json
