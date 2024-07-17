@@ -1,0 +1,60 @@
+services:
+  jobmanager:
+    image: flink:1.17.1-scala_2.12
+    ports:
+      - "8081:8081"
+    command: jobmanager
+    user: flink
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: jobmanager
+    networks:
+      - flink-network
+    volumes:
+      - ./jars/flink-shaded-hadoop-2-uber-2.8.3-10.0.jar:/opt/flink/lib/flink-shaded-hadoop-2-uber-2.8.3-10.0.jar
+      - ./jars/paimon-flink-1.17-0.9-20240715.002309-36.jar:/opt/flink/lib/paimon-flink-1.17-0.9-20240715.002309-36.jar
+      - flink-data:/tmp
+
+  taskmanager:
+    image: flink:1.17.1-scala_2.12
+    depends_on:
+      - jobmanager
+    command: taskmanager
+    user: flink
+    scale: 1
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: jobmanager
+        taskmanager.numberOfTaskSlots: 4
+    networks:
+      - flink-network
+    volumes:
+      - ./jars/flink-shaded-hadoop-2-uber-2.8.3-10.0.jar:/opt/flink/lib/flink-shaded-hadoop-2-uber-2.8.3-10.0.jar
+      - ./jars/paimon-flink-1.17-0.9-20240715.002309-36.jar:/opt/flink/lib/paimon-flink-1.17-0.9-20240715.002309-36.jar
+      - flink-data:/tmp
+
+  sql-client:
+    image: flink:1.17.1-scala_2.12
+    command: bin/sql-client.sh
+    user: flink
+    depends_on:
+      - jobmanager
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: jobmanager
+        rest.address: jobmanager
+    networks:
+      - flink-network
+    volumes:
+      - ./jars/flink-shaded-hadoop-2-uber-2.8.3-10.0.jar:/opt/flink/lib/flink-shaded-hadoop-2-uber-2.8.3-10.0.jar
+      - ./jars/paimon-flink-1.17-0.9-20240715.002309-36.jar:/opt/flink/lib/paimon-flink-1.17-0.9-20240715.002309-36.jar
+      - flink-data:/tmp
+
+networks:
+  flink-network:
+
+volumes:
+  flink-data:
