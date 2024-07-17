@@ -103,7 +103,7 @@ Apart from existing `metadata/00000-37121756-df65-47d6-93bb-b6eb53e33eea.metadat
 - `metadata/631b4d7b-5501-4cb2-b205-7b8117a0fe7b-m0.avro`
 - `metadata/snap-7304560488408846027-1-631b4d7b-5501-4cb2-b205-7b8117a0fe7b.avro`
 
-## Metadata File
+### Metadata File
 
 Let's checkout the new `metadata.json` file first:
 
@@ -164,7 +164,7 @@ Compared to the existing `metadata.json` file, we have the following changes:
 - `snapshot-log` now contains the timestamp and snapshot id.
 - `metadata-log` now contains the timestamp and last metadata file.
 
-## Manifest List
+### Manifest List
 
 The `manifest-list` points the snapshot files located at: `metadata/snap-7304560488408846027-1-631b4d7b-5501-4cb2-b205-7b8117a0fe7b.avro`. 
 
@@ -207,7 +207,7 @@ The manifest list contains the following information:
 - Path and size of the manifest file.
 - Summary of the snapshot, including added data files, added records, etc.
 
-## Manifest File
+### Manifest File
 
 Manifest list will point to one or more manifest files which contains the following information:
 
