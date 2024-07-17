@@ -8,7 +8,7 @@ The Apache Hive ™ is a distributed, fault-tolerant data warehouse system that 
 docker-compose up
 ```
 
-hive is ready after see log like the following:
+hive is ready after seeing log like the following:
 
 ```shell
 hiveserver2  | 2024-07-17 08:15:39: Starting HiveServer2
