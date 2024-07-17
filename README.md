@@ -8,28 +8,20 @@ This project seeks to explore various data lake projects by deploying them and a
 
 ## Layout
 
-This project is structured into various data lake projects, each with its own directory. Every project includes a `README.md` file that describes the project and provides deployment instructions.
+This project is structured into various questions along with different data lake projects, each with its own directory. Every project includes a `README.md` file that describes the project and provides deployment instructions.
 
-- [Apache Hive](./apache-hive)
-- [Apache Iceberg](./apache-iceberg)
-- [Apache Paimon](./apache-paimon)
-- [Delta Lake](./delta-lake)
+- [Apache Hive](lakes/apache-hive)
+- [Apache Iceberg](lakes/apache-iceberg)
+- [Apache Paimon](lakes/apache-paimon)
+- [Delta Lake](lakes/delta-lake)
 
-## Setup
+You can navigate to the corresponding directory to explore the project you are interested in. Or you can follow the questions in the [Questions](#questions) section to explore the data lake projects step by step.
 
-We will use some tools to observe and inspect the data lake projects, please make sure the following tools are installed.
+## Questions
 
-- `docker` and `docker-compose`: We will use docker to deploy the data lake projects.
-- `python` and `pip`: We will use python to run some tools.
-- `java`: We will use java to run some tools.
+1. [How Data Lake Stores Table Metadata?](./01-how-data-lake-stores-table-metadata.md)
+2. [How Data Lake Handles One Line Insert?](./02-how-data-lake-handles-one-line-insert.md)
 
-Prepare the python environment for some useful tools.
+## License
 
-```bash
-python -m -venv venv
-source ./venv/bin/activate
-pip install parquet_tools
-pip install s3cmd
-
-curl https://downloads.apache.org/avro/avro-1.11.3/java/avro-tools-1.11.3.jar -O ./tools/avro-tools-1.11.3.jar
-```
+Licensed under the Apache License, Version 2.0: http://www.apache.org/licenses/LICENSE-2.0
