@@ -2,6 +2,12 @@
 
 Welcome to the first chapter of Learn Data Lake From Storage! In this chapter, we will explore how data lakes store metadata. Please make sure you have finished the setup work for data lakes you want to explore.
 
+| Lake            | Storage                                           | 
+|-----------------|---------------------------------------------------| 
+| Apache Hive     | no extra meta                                     |
+| Apache Iceberg  | table id, schema, partition spec, snapshots, logs |
+| Apache Paimon   | table id, schema, partition key                   |
+
 ## Apache Hive
 
 > Visit [Apache Hive](lakes/apache-hive/README.md) to get it setup.
@@ -114,3 +120,68 @@ Let's get its content:
 ```
 
 In this file, we have the table schema, location, and some other metadata. Although it's still possible for the catalog to cache or store this metadata, the metadata is stored in the storage layer.
+
+## Apache Paimon
+
+> Visit [Apache Paimon](lakes/apache-paimon/README.md) to get it setup.
+
+Let's go and create a catalog first:
+
+```sql
+CREATE CATALOG my_catalog WITH (
+   'type'='paimon',
+   'warehouse'='file:/tmp/paimon'
+);
+
+USE CATALOG my_catalog;
+```
+
+Then we can create a table with paimon:
+
+```sql
+CREATE TABLE example_table (
+  id INT PRIMARY KEY NOT ENFORCED,
+  name STRING
+);
+```
+
+We will see:
+
+```shell
+:( sudo tree /var/lib/docker/volumes/apache-paimon_flink-data/_data/paimon
+/var/lib/docker/volumes/apache-paimon_flink-data/_data/paimon
+└── default.db
+    └── example_table
+        └── schema
+            └── schema-0
+
+4 directories, 1 file
+```
+
+A new directory with schema is created for the table. The schema is stored in the storage layer as a JSON file.
+
+```shell
+:) sudo cat /var/lib/docker/volumes/apache-paimon_flink-data/_data/paimon/default.db/example_table/schema/schema-0
+
+{
+  "version" : 3,
+  "id" : 0,
+  "fields" : [ {
+    "id" : 0,
+    "name" : "id",
+    "type" : "INT NOT NULL"
+  }, {
+    "id" : 1,
+    "name" : "name",
+    "type" : "STRING"
+  } ],
+  "highestFieldId" : 1,
+  "partitionKeys" : [ ],
+  "primaryKeys" : [ "id" ],
+  "options" : { },
+  "comment" : "",
+  "timeMillis" : 1721287798434
+}
+```
+
+In the schema, we have data fields, partition keys, and some other metadata. The metadata is stored in the storage layer.

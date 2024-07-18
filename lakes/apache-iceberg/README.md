@@ -34,7 +34,7 @@ curl https://downloads.apache.org/avro/avro-1.11.3/java/avro-tools-1.11.3.jar -O
 ## Start Service
 
 ```shell
-docker-compose up
+docker compose up
 ```
 
 iceberg with spark as engine is ready after seeing logs like the following:

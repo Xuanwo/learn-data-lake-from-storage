@@ -2,6 +2,12 @@
 
 Welcome to the second chapter of Learn Data Lake From Storage! In this chapter, we will explore how data lakes handle one line insert. Please make sure you have finished the setup work for data lakes you want to explore.
 
+| Lake            | Storage                                                                           | 
+|-----------------|-----------------------------------------------------------------------------------| 
+| Apache Hive     | data files                                                                        |
+| Apache Iceberg  | data files, `metadata.json`, manifest lists, manifest files                       |
+| Apache Paimon   | data files, snapshot, {base,delta} manifest lists, manifest files, index manifest |
+
 ## Apache Hive
 
 > Visit [Apache Hive](lakes/apache-hive) to get it setup.
@@ -83,7 +89,7 @@ So hive only store data files in the storage layer, and all the metadata are sto
 Let's insert some data:
 
 ```sql
-INSERT INTO demo.nyc.example_table VALUES (1, "a");
+INSERT INTO demo.nyc.example_table VALUES (1, 'a');
 ```
 
 Let's see how storage changed:
@@ -301,3 +307,209 @@ And finally, we will have the data file with value:
 ### Summary
 
 So in iceberg table, one line insert is not just about adding data files, but also about updating the metadata files includes metadata file, manifest lists, manifest files, and data files.
+
+## Apache Paimon
+
+> Visit [Apache Paimon](lakes/apache-paimon/README.md) to get it setup.
+
+Let's insert some data:
+
+```sql
+INSERT INTO example_table VALUES (1, 'a');
+```
+
+Let's see how storage changed:
+
+```shell
+/var/lib/docker/volumes/apache-paimon_flink-data/_data/paimon
+└── default.db
+    └── example_table
+        ├── bucket-0
+        │   └── data-b6218035-8fc5-4c68-b22c-2fec2e4542d4-0.parquet
+        ├── index
+        │   └── index-c4d9fdb0-c92b-48d2-a919-70d9de36092c-0
+        ├── manifest
+        │   ├── index-manifest-55e3e815-08ab-4a70-a808-a8df5d275cb4-0
+        │   ├── manifest-1d87a516-733b-40c4-870b-5b9d3515c0e5-0
+        │   ├── manifest-list-4091b92b-01d3-4b91-8e47-8c9f61847d2f-0
+        │   └── manifest-list-4091b92b-01d3-4b91-8e47-8c9f61847d2f-1
+        ├── schema
+        │   └── schema-0
+        └── snapshot
+            ├── EARLIEST
+            ├── LATEST
+            └── snapshot-1
+
+8 directories, 10 files
+```
+
+We have the following new files created after an insert:
+
+- `bucket-0/data-b6218035-8fc5-4c68-b22c-2fec2e4542d4-0.parquet`
+- `index/index-c4d9fdb0-c92b-48d2-a919-70d9de36092c-0`
+- `manifest/index-manifest-55e3e815-08ab-4a70-a808-a8df5d275cb4-0`
+- `manifest/manifest-1d87a516-733b-40c4-870b-5b9d3515c0e5-0`
+- `manifest/manifest-list-4091b92b-01d3-4b91-8e47-8c9f61847d2f-0`
+- `manifest/manifest-list-4091b92b-01d3-4b91-8e47-8c9f61847d2f-1`
+- `snapshot/snapshot-1`
+- `snapshot/EARLIEST`
+- `snapshot/LATEST`
+
+Let's copy the entire `paimon` data dir locally and inspect the files.
+
+### Snapshot
+
+Snapshot is the entry point of the paimon table. Every write operation will create a new snapshot. `EARLIEST` and `LATEST` will point to the earliest and latest snapshot respectively for the reader to find the snapshot easier.
+
+Snapshot also stored as JSON file in storage layer:
+
+```json
+{
+  "version" : 3,
+  "id" : 1,
+  "schemaId" : 0,
+  "baseManifestList" : "manifest-list-4091b92b-01d3-4b91-8e47-8c9f61847d2f-0",
+  "deltaManifestList" : "manifest-list-4091b92b-01d3-4b91-8e47-8c9f61847d2f-1",
+  "changelogManifestList" : null,
+  "indexManifest" : "index-manifest-55e3e815-08ab-4a70-a808-a8df5d275cb4-0",
+  "commitUser" : "cf568e07-05ad-4943-b4bd-37461bc58729",
+  "commitIdentifier" : 9223372036854775807,
+  "commitKind" : "APPEND",
+  "timeMillis" : 1721287833568,
+  "logOffsets" : { },
+  "totalRecordCount" : 1,
+  "deltaRecordCount" : 1,
+  "changelogRecordCount" : 0,
+  "watermark" : -9223372036854775808
+}
+```
+
+In the snapshot, we have the following information:
+
+- `baseManifestList` and `deltaManifestList` point to the manifest list.
+- `indexManifest` points to the index file.
+
+There is a `changeLogManifestList` field, but it is not used in this case. We will revisit this part in the future.
+
+We can infer that for every write operation, Paimon creates two manifest lists: one for the base and one for the delta. Thus, consumers can read data from the base manifest list and apply the delta manifest list to access the latest data or simply consume the delta portion of the data.
+
+### Manifest List
+
+The base manifest list is empty, as expected, given that our last state was an empty table. The delta manifest contains the following data:
+
+```json
+{
+  "org.apache.paimon.avro.generated.record": {
+    "_VERSION": 2,
+    "_FILE_NAME": "manifest-1d87a516-733b-40c4-870b-5b9d3515c0e5-0",
+    "_FILE_SIZE": 1862,
+    "_NUM_ADDED_FILES": 1,
+    "_NUM_DELETED_FILES": 0,
+    "_PARTITION_STATS": {
+      "org.apache.paimon.avro.generated.record__PARTITION_STATS": {
+        "_MIN_VALUES": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+        "_MAX_VALUES": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+        "_NULL_COUNTS": {
+          "array": []
+        }
+      }
+    },
+    "_SCHEMA_ID": 0
+  }
+}
+```
+
+We have the path to the manifest file, the file size, the number of added and deleted files, and the partition stats.
+
+### Manifest File
+
+The manifest file contains the following data:
+
+```json
+{
+  "org.apache.paimon.avro.generated.record": {
+    "_VERSION": 2,
+    "_KIND": 0,
+    "_PARTITION": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+    "_BUCKET": 0,
+    "_TOTAL_BUCKETS": -1,
+    "_FILE": {
+      "org.apache.paimon.avro.generated.record__FILE": {
+        "_FILE_NAME": "data-b6218035-8fc5-4c68-b22c-2fec2e4542d4-0.parquet",
+        "_FILE_SIZE": 1004,
+        "_ROW_COUNT": 1,
+        "_MIN_KEY": "\u0000\u0000\u0000\u0001\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0001\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+        "_MAX_KEY": "\u0000\u0000\u0000\u0001\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0001\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+        "_KEY_STATS": {
+          "org.apache.paimon.avro.generated.record__FILE__KEY_STATS": {
+            "_MIN_VALUES": "\u0000\u0000\u0000\u0001\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0001\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+            "_MAX_VALUES": "\u0000\u0000\u0000\u0001\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0001\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+            "_NULL_COUNTS": {
+              "array": [
+                {
+                  "long": 0
+                }
+              ]
+            }
+          }
+        },
+        "_VALUE_STATS": {
+          "org.apache.paimon.avro.generated.record__FILE__VALUE_STATS": {
+            "_MIN_VALUES": "\u0000\u0000\u0000\u0002\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0001\u0000\u0000\u0000\u0000\u0000\u0000\u0000a\u0000\u0000\u0000\u0000\u0000\u0000",
+            "_MAX_VALUES": "\u0000\u0000\u0000\u0002\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0001\u0000\u0000\u0000\u0000\u0000\u0000\u0000a\u0000\u0000\u0000\u0000\u0000\u0000",
+            "_NULL_COUNTS": {
+              "array": [
+                {
+                  "long": 0
+                },
+                {
+                  "long": 0
+                }
+              ]
+            }
+          }
+        },
+        "_MIN_SEQUENCE_NUMBER": 0,
+        "_MAX_SEQUENCE_NUMBER": 0,
+        "_SCHEMA_ID": 0,
+        "_LEVEL": 0,
+        "_EXTRA_FILES": [],
+        "_CREATION_TIME": {
+          "long": 1721287833375
+        },
+        "_DELETE_ROW_COUNT": {
+          "long": 0
+        },
+        "_EMBEDDED_FILE_INDEX": null,
+        "_FILE_SOURCE": {
+          "int": 0
+        }
+      }
+    }
+  }
+}
+```
+
+Apart from data files path and size, manifest will also have key stats and value stats, which contains the min and max values of the key and value columns.
+
+### Data File
+
+And finally, we will have the data file with value:
+
+```shell
++-----------+--------------------+---------------+------+--------+
+|   _KEY_id |   _SEQUENCE_NUMBER |   _VALUE_KIND |   id | name   |
+|-----------+--------------------+---------------+------+--------|
+|         1 |                  0 |             0 |    1 | a      |
++-----------+--------------------+---------------+------+--------+
+```
+
+Paimon will store some extra information in the data file, including key, sequence number, value kind, etc.
+
+### Index Manifest
+
+Part from data and it's related stats, paimon will also write index manifest. We will revisit this part in the future.
+
+### Summary
+
+So in Paimon, one line insert is not just about adding data files, but also about updating the metadata files includes snapshot, {base,delta} manifest lists, index manifest, manifest files, and data files.
