@@ -58,7 +58,7 @@ In our following examples, we will use `s3cmd` to interact with minio.
 ## Connect to Iceberg via Spark
 
 ```shell
-docker exec -it spark-iceberg spark-sql
+docker exec -it spark-iceberg spark-sql --conf "spark.hadoop.hive.cli.print.header=true"
 ```
 
 We will get into the spark sql shell:
